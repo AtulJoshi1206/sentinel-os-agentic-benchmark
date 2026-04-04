@@ -1,0 +1,24 @@
+name: sentinel_os_benchmark
+version: "1.0.0"
+entrypoint: "env:SentinelEnv"
+description: "A benchmark environment for evaluating agentic recovery from silent API failures."
+
+# Metrics for Evaluation
+metrics:
+  - id: "res_score"
+    name: "Recovery Efficiency Score"
+    description: "Measures the ratio of diagnostic actions to blind retries."
+
+# Task Definitions
+tasks:
+  - id: "task_1_sync"
+    difficulty: "easy"
+    goal: "Sync data from V1 API to local storage."
+  
+  - id: "task_2_audit"
+    difficulty: "medium"
+    goal: "Compare API state with local config and identify mismatches."
+
+  - id: "task_3_recovery"
+    difficulty: "hard"
+    goal: "Detect silent API migration in logs, update config, and restore sync."

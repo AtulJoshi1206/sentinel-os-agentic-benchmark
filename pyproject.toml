@@ -1,0 +1,23 @@
+[project]
+name = "sentinel-os"
+version = "1.0.0"
+description = "Agentic Recovery Benchmark"
+authors = [{ name = "Atul Joshi" }]
+requires-python = ">=3.10"
+
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "pydantic",
+    "openai",
+    "python-dotenv",
+    "openenv-core>=0.2.0"
+]
+
+[project.scripts]
+server = "server.app:main"
+
+[tool.openenv]
+env = "sentinel_os"
+entrypoint = "server.app:main"
+inference = "inference.py"
