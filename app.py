@@ -10,6 +10,7 @@ def root():
     return {"status": "Sentinel-OS Benchmark Running", "version": "1.0.0"}
 
 @app.get("/reset")
+@app.post("/reset")
 def reset():
     obs = env_instance.reset()
     return obs.dict()
