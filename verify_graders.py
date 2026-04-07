@@ -33,6 +33,14 @@ FAIL = "\033[91m✗ FAIL\033[0m"
 WARN = "\033[93m⚠ WARN\033[0m"
 errors = 0
 
+
+def strict_score(x: float) -> float:
+    if x <= 0.0:
+        return 0.001
+    if x >= 1.0:
+        return 0.999
+    return round(x, 3)
+
 def ctx(failure_type):
     """Inject the _ctx sentinel action for a given failure_type."""
     return Action(tool="_ctx", cmd="failure_injected", args=failure_type)
@@ -154,18 +162,18 @@ for label, traj, exp_basic, exp_logs, exp_eff in SCENARIOS:
     all_logs_scores.append(l)
     all_eff_scores.append(e)
 
-    b_ok = abs(b - min(exp_basic, 1.0)) < 0.01
-    l_ok = abs(l - min(exp_logs, 1.0)) < 0.01
-    e_ok = abs(e - min(exp_eff, 1.0)) < 0.01
+    b_ok = abs(b - strict_score(min(exp_basic, 1.0))) < 0.01
+    l_ok = abs(l - strict_score(min(exp_logs, 1.0))) < 0.01
+    e_ok = abs(e - strict_score(min(exp_eff, 1.0))) < 0.01
 
     status = PASS if (b_ok and l_ok and e_ok) else FAIL
     if not (b_ok and l_ok and e_ok):
         errors += 1
 
     print(f"  {status}  {label}")
-    flag_b = "" if b_ok else f"  ← expected {min(exp_basic,1.0):.2f}"
-    flag_l = "" if l_ok else f"  ← expected {min(exp_logs,1.0):.2f}"
-    flag_e = "" if e_ok else f"  ← expected {min(exp_eff,1.0):.2f}"
+    flag_b = "" if b_ok else f"  ← expected {strict_score(min(exp_basic,1.0)):.3f}"
+    flag_l = "" if l_ok else f"  ← expected {strict_score(min(exp_logs,1.0)):.3f}"
+    flag_e = "" if e_ok else f"  ← expected {strict_score(min(exp_eff,1.0)):.3f}"
     print(f"       basic={b:.3f}{flag_b}  logs={l:.3f}{flag_l}  eff={e:.3f}{flag_e}")
     print()
 
@@ -195,8 +203,8 @@ for seed in range(6):
     l = task_logs.grader(traj)
     e = task_efficiency.grader(traj)
     all_ok = (
-        b == 1.0 and l == 1.0
-        and 0.0 <= e <= 1.0
+        b == 0.999 and l == 0.999
+        and 0.0 < e < 1.0
         and state["fixed"] is True
     )
     check(
@@ -230,7 +238,7 @@ if env:
     wrong_logs  = task_logs.grader(env.trajectory)
     check(
         f"auth + update_config(v2)  → basic={wrong_basic:.2f} logs={wrong_logs:.2f}  (should be ≤0.1)",
-        wrong_basic == 0.0 and wrong_logs <= 0.1,
+        wrong_basic <= 0.001 and wrong_logs <= 0.1,
         "wrong-fix trap must score 0 on basic"
     )
     check(

@@ -18,7 +18,13 @@ Penalty rules (score < 1.0):
 The env injects a `_ctx` sentinel action (tool="_ctx", args=failure_type)
 into the trajectory at the moment of failure. Graders extract it to score
 in context without changing their signature.
+
+Exact boundary values are nudged into the open interval (0, 1):
+  0.0 -> 0.001
+  1.0 -> 0.999
 """
+
+from task_modules._score import strict_unit_interval
 
 TASK_ID = "basic_recovery"
 TASK_NAME = "Basic Recovery"
@@ -36,7 +42,7 @@ def _get_failure_type(trajectory):
 
 def grader(trajectory) -> float:
     if not trajectory:
-        return 0.0
+        return strict_unit_interval(0.0)
 
     actions = [
         a for a in trajectory
@@ -60,39 +66,39 @@ def grader(trajectory) -> float:
 
     # ── No failure injected yet (pre-step-5 grading) ─────────────────
     if failure_type is None:
-        return 1.0 if did_update_v2 else 0.0
+        return strict_unit_interval(1.0 if did_update_v2 else 0.0)
 
     # ── version: only update_config(v2) is correct ────────────────────
     if failure_type == "version":
         if did_update_v2 and not did_refresh:
-            return 1.0
+            return strict_unit_interval(1.0)
         if did_refresh:
-            return 0.0   # wrong fix: refresh on version failure
+            return strict_unit_interval(0.0)   # wrong fix: refresh on version failure
         if did_update_bad:
-            return 0.0
-        return 0.0
+            return strict_unit_interval(0.0)
+        return strict_unit_interval(0.0)
 
     # ── auth: ONLY refresh_token is correct ──────────────────────────
     if failure_type == "auth":
         if did_refresh and not did_update_v2:
-            return 1.0
+            return strict_unit_interval(1.0)
         if did_update_v2:
-            return 0.0   # wrong-fix trap — never resolves auth
+            return strict_unit_interval(0.0)   # wrong-fix trap — never resolves auth
         if did_refresh and did_update_v2:
-            return 0.5   # hedged — tried both, but wasted a bad call
-        return 0.0
+            return strict_unit_interval(0.5)   # hedged — tried both, but wasted a bad call
+        return strict_unit_interval(0.0)
 
     # ── rate_limit: wait → update_config(v2) in ORDER ─────────────────
     if failure_type == "rate_limit":
         if _ordered_rate_fix(actions):
-            return 1.0
+            return strict_unit_interval(1.0)
         if did_update_v2 and not did_wait:
-            return 0.1   # partial trap — skipped the backoff wait
+            return strict_unit_interval(0.1)   # partial trap — skipped the backoff wait
         if did_refresh:
-            return 0.0   # completely wrong tool for rate_limit
-        return 0.0
+            return strict_unit_interval(0.0)   # completely wrong tool for rate_limit
+        return strict_unit_interval(0.0)
 
-    return 0.0
+    return strict_unit_interval(0.0)
 
 
 def _ordered_rate_fix(actions) -> bool:

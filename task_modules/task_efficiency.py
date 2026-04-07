@@ -22,6 +22,7 @@ Modifiers:
 All scores clamped to [0.0, 1.0].
 """
 from typing import Optional
+from task_modules._score import strict_unit_interval
 
 TASK_ID = "efficient_recovery"
 TASK_NAME = "Efficient Recovery"
@@ -38,7 +39,7 @@ def _get_failure_type(trajectory) -> Optional[str]:
 
 def grader(trajectory) -> float:
     if not trajectory:
-        return 0.0
+        return strict_unit_interval(0.0)
 
     actions = [
         a for a in trajectory
@@ -81,7 +82,7 @@ def grader(trajectory) -> float:
         min_steps  = 2
 
     if not fixed:
-        return 0.0
+        return strict_unit_interval(0.0)
 
     # ── Efficiency score ─────────────────────────────────────────────
     efficiency = min_steps / steps
@@ -91,7 +92,7 @@ def grader(trajectory) -> float:
     trap_penalty  = 0.20 if trap_hit else 0.0
 
     score = efficiency + log_bonus - trap_penalty
-    return round(max(0.0, min(1.0, score)), 3)
+    return strict_unit_interval(score)
 
 
 def _ordered_rate_fix(actions) -> bool:

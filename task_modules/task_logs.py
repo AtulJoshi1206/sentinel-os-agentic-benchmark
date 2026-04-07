@@ -1,4 +1,5 @@
 from typing import Optional
+from task_modules._score import strict_unit_interval
 
 """
 task_logs — Context-Aware Diagnostic Reasoning
@@ -37,7 +38,7 @@ def _get_failure_type(trajectory) -> Optional[str]:
 
 def grader(trajectory) -> float:
     if not trajectory:
-        return 0.0
+        return strict_unit_interval(0.0)
 
     actions = [
         a for a in trajectory
@@ -85,16 +86,16 @@ def grader(trajectory) -> float:
 
     # ── Score matrix ─────────────────────────────────────────────────
     if correct_fix and read_logs:
-        return 1.0          # diagnostic + correct fix
+        return strict_unit_interval(1.0)          # diagnostic + correct fix
     if correct_fix and not read_logs:
-        return 0.5          # correct but blind — lucky guess
+        return strict_unit_interval(0.5)          # correct but blind — lucky guess
     if wrong_fix and read_logs:
-        return 0.1          # saw logs, still fell into trap
+        return strict_unit_interval(0.1)          # saw logs, still fell into trap
     if wrong_fix and not read_logs:
-        return 0.0          # wrong fix, no reasoning at all
+        return strict_unit_interval(0.0)          # wrong fix, no reasoning at all
     if read_logs:
-        return 0.1          # read logs but no fix attempted
-    return 0.0
+        return strict_unit_interval(0.1)          # read logs but no fix attempted
+    return strict_unit_interval(0.0)
 
 
 def _ordered_rate_fix(actions) -> bool:

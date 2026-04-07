@@ -1,6 +1,7 @@
 from task_modules.task_basic import grader as basic_grader
 from task_modules.task_logs import grader as logs_grader
 from task_modules.task_efficiency import grader as efficiency_grader
+from task_modules._score import strict_unit_interval
 
 TASK_GRADERS = {
     "task_basic": basic_grader,
@@ -29,12 +30,12 @@ def grade_trajectory(state, trajectory=None, task_id=None):
       - task_efficiency  : path efficiency
     """
     if trajectory is None:
-        return 0.0
+        return strict_unit_interval(0.0)
 
     if task_id in _ALL_GRADERS:
-        return round(_ALL_GRADERS[task_id](trajectory), 3)
+        return strict_unit_interval(_ALL_GRADERS[task_id](trajectory))
 
     basic = basic_grader(trajectory)
     logs = logs_grader(trajectory)
     efficiency = efficiency_grader(trajectory)
-    return round((basic + logs + efficiency) / 3.0, 3)
+    return strict_unit_interval((basic + logs + efficiency) / 3.0)
