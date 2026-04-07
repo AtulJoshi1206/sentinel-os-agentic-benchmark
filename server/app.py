@@ -1,9 +1,11 @@
 from typing import Optional
+import os
 from fastapi import FastAPI
 from pydantic import BaseModel
 from env import SentinelEnv
-from models import Action
+from models import Action, Observation
 from grader import TASK_GRADERS, grade_trajectory
+from tasks import TASKS
 
 app = FastAPI()
 env_instance = SentinelEnv()
@@ -17,7 +19,7 @@ def root():
     return {
         "status": "Sentinel-OS Benchmark Running",
         "version": "1.0.0",
-        "endpoints": ["/reset", "/step", "/state", "/tasks", "/grader", "/validate"],
+        "endpoints": ["/reset", "/step", "/state", "/tasks", "/grader", "/validate", "/metadata", "/schema", "/baseline"],
     }
 
 # ✅ SUPPORT BOTH GET AND POST
@@ -50,15 +52,23 @@ def tasks():
         {
             **task,
             "grader": True,
+            "has_grader": True,
+            "grader_id": task["task_id"],
+            "grader_endpoint": f"/grader?task_id={task['task_id']}",
         }
-        for task in env_instance.tasks()
+        for task in TASKS
     ]
 
 
 @app.get("/grader")
 def grader(task_id: Optional[str] = None):
     current_state = env_instance.state()
-    active_task = task_id or current_state.get("task_id", "efficient_recovery")
+    if task_id is None:
+        return {
+            "graders": sorted(TASK_GRADERS.keys()),
+            "count": len(TASK_GRADERS),
+        }
+    active_task = task_id
     score = grade_trajectory(current_state, env_instance.trajectory, task_id=active_task)
     return {
         "task_id": active_task,
@@ -69,7 +79,7 @@ def grader(task_id: Optional[str] = None):
 
 @app.get("/validate")
 def validate():
-    task_ids = {task["id"] for task in env_instance.tasks()}
+    task_ids = {task["id"] for task in TASKS}
     return {
         "valid": len(task_ids & set(TASK_GRADERS)) >= 3,
         "checks": {
@@ -79,6 +89,41 @@ def validate():
             "step_endpoint": True,
             "reset_endpoint": True,
         },
+    }
+
+
+@app.get("/metadata")
+def metadata():
+    return {
+        "name": "sentinel_os",
+        "description": "Production-grade agentic recovery benchmark",
+        "version": "2.0.0",
+        "tags": ["openenv", "reliability", "incident-response"],
+        "tasks_count": len(TASKS),
+        "graders_count": len(TASK_GRADERS),
+    }
+
+
+@app.get("/schema")
+def schema():
+    return {
+        "action": Action.model_json_schema(),
+        "observation": Observation.model_json_schema(),
+        "state": {"type": "object"},
+    }
+
+
+@app.get("/baseline")
+def baseline():
+    scores = {}
+    for task in TASKS:
+        task_id = task["task_id"]
+        cmd = f"TASK_NAME={task_id} python3 inference.py"
+        scores[task_id] = {"task_id": task_id, "command": cmd}
+    return {
+        "tasks": scores,
+        "inference_script": "inference.py",
+        "model": os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct"),
     }
 
 
