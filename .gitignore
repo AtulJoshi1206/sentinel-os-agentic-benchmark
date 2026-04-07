@@ -1,7 +1,6 @@
 venv/
 __pycache__/
 *.pyc
-uv.lock
 test_*.py
 scripts/
 /tmp/

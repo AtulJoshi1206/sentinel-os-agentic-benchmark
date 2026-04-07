@@ -16,14 +16,33 @@ class SentinelEnv:
             "history": [],
             "pending_write": None
         }
+        self.trajectory = []
         return self._get_obs("Environment reset. Sync API data.")
 
     def step(self, action: Action):
         self.state["step"] += 1
         self.state["history"].append(f"{action.tool}:{action.cmd}")
+        self.trajectory.append(action)
 
         narrator = ""
-        reward = -0.05  # Standard step penalty for efficiency
+        reward = 0.0
+
+        # Repeated action penalty
+        repeated_action = False
+        if len(self.state["history"]) > 1:
+            if self.state["history"][-1] == self.state["history"][-2]:
+                repeated_action = True
+
+        if action.tool == "browser":
+            reward += 0.1
+        elif action.tool == "terminal":
+            reward += 0.3
+        elif action.tool == "config":
+            reward += 0.6
+
+        # penalize useless repetition
+        if repeated_action:
+            reward -= 0.2
 
         # 🔥 Silent failure trigger (The "Meta" Moment)
         if self.state["step"] == 5:
@@ -56,14 +75,13 @@ class SentinelEnv:
 
         elif action.tool == "terminal" and action.cmd == "cat":
             narrator = f"Logs Read: {self.state['logs']}"
-            reward += 0.4  # Reward for active perception (diagnostic action)
 
-        elif action.tool == "terminal" and action.cmd == "update_config":
+        elif action.tool == "config" or (action.tool == "terminal" and action.cmd == "update_config"):
             if action.args == "v2":
                 self.state["api_version"] = "v2"
                 self.state["broken"] = False
                 narrator = "Config updated to v2. System handshake successful."
-                reward += 1.0
+                reward = 1.0  # Max reward for success
             else:
                 narrator = "Update failed: Invalid configuration string."
                 reward -= 0.3
@@ -82,6 +100,9 @@ class SentinelEnv:
             and self.state["api_version"] == self.state["correct_api"]
             and not self.state["broken"]
         ) or self.state["step"] >= 15
+
+        # Ensure reward is always between -1.0 and 1.0
+        reward = max(-1.0, min(1.0, reward))
 
         return self._get_obs(narrator), reward, done, {}
 

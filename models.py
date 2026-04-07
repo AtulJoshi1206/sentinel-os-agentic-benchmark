@@ -12,3 +12,6 @@ class Action(BaseModel):
     tool: str = Field(..., description="Tool to use: 'browser', 'terminal', or 'filesystem'")
     cmd: str = Field(..., description="Command: 'fetch', 'cat', 'ls', 'update_config', 'wait'")
     args: Optional[str] = Field(None, description="Arguments for the command (e.g., file name or URL)")
+
+    def __str__(self):
+        return f"{self.tool}:{self.cmd}"
