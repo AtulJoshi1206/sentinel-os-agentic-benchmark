@@ -1,6 +1,8 @@
 name: sentinel_os
-version: "1.0.0"
-description: Agentic recovery benchmark for diagnosing hidden system failures
+version: "2.0.0"
+description: >
+  Production-grade agentic recovery benchmark with non-deterministic failure modes,
+  noisy logs, wrong-fix traps, and multi-step dependency chains.
 
 tasks:
   - id: basic_recovery

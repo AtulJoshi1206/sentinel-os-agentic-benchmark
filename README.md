@@ -68,18 +68,19 @@ failure detection → reasoning → recovery.
 
 ## Evaluation Metric
 
-Recovery Efficiency Score (RES):
+Scoring is trajectory-aware and normalized to `[0, 1]`.
 
-```
+Final score is the mean of three graders:
 
-RES = diagnostic_actions / retry_actions
+- `task_basic` → did the agent apply the correct recovery path for the actual failure?
+- `task_logs` → did the agent inspect logs before fixing, or act blindly?
+- `task_efficiency` → how close was the recovery path to the minimum viable number of steps?
 
-```
+This gives the benchmark a clear three-axis evaluation story:
 
-Where:
-
-- diagnostic_actions → meaningful inspection (e.g., reading logs)  
-- retry_actions → blind or repeated attempts  
+- success
+- reasoning
+- efficiency
 
 ---
 
@@ -94,7 +95,7 @@ Agent must successfully execute `terminal:update_config` after failure detection
 Agent must perform `terminal:cat` before applying fix. Missing this reduces score.
 
 ### 3. Efficient Recovery (Hard)
-Agent must recover system within minimal steps (≤7 optimal, penalties beyond).
+Agent must recover using a minimal recovery path, with continuous efficiency decay instead of coarse buckets.
 
 ---
 
@@ -208,13 +209,16 @@ The script will:
 Example run using the provided inference script:
 
 ```
-[START]
-[STEP] ...
-[STEP] ...
-[END] success=true steps=7 score=0.77
+[START] task=efficient_recovery env=sentinel_os model=Qwen/Qwen2.5-72B-Instruct
+[STEP] step=1 action=browser:fetch reward=0.60 done=false error=null
+[STEP] step=2 action=browser:fetch reward=0.40 done=false error=null
+[STEP] step=3 action=browser:fetch reward=0.40 done=false error=null
+[STEP] step=4 action=browser:fetch reward=0.40 done=false error=null
+[STEP] step=5 action=browser:fetch reward=-0.20 done=false error=api_mismatch
+[STEP] step=6 action=terminal:cat reward=0.70 done=false error=null
+[STEP] step=7 action=terminal:update_config(v2) reward=1.00 done=true error=null
+[END] success=true steps=7 score=0.779 rewards=0.60,0.40,0.40,0.40,-0.20,0.70,1.00
 ```
-
-This demonstrates successful recovery with efficient reasoning.
 
 ---
 
@@ -250,6 +254,13 @@ MODEL_NAME
 HF_TOKEN (optional)
 
 ```
+
+### Inference Submission Contract
+
+- `inference.py` must live at the repo root
+- stdout must emit `[START]`, one `[STEP]` per environment step, and `[END]`
+- final score must be clamped to `[0, 1]`
+- the script uses the OpenAI client for model calls and falls back to a safe policy if the model output is invalid
 
 ---
 
@@ -301,5 +312,4 @@ It is a **behavioral diagnostic benchmark** for evaluating:
 under real-world-like uncertainty.
 
 This environment evaluates not just success, but *how intelligently an agent reaches success*.
-
 

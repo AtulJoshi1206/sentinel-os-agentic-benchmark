@@ -18,11 +18,12 @@ def reset():
 @app.post("/step")
 def step(action: dict):
     action_obj = Action(**action)
-    obs, reward, done, _ = env_instance.step(action_obj)
+    obs, reward, done, info = env_instance.step(action_obj)
     return {
         "observation": obs.dict(),
         "reward": reward,
-        "done": done
+        "done": done,
+        "error": info.get("error"),
     }
 
 @app.get("/state")
