@@ -83,6 +83,35 @@ Where:
 
 ---
 
+## Tasks
+
+The benchmark includes three progressively difficult tasks:
+
+### 1. Basic Recovery (Easy)
+Agent must successfully execute `terminal:update_config` after failure detection.
+
+### 2. Log-Based Diagnosis (Medium)
+Agent must perform `terminal:cat` before applying fix. Missing this reduces score.
+
+### 3. Efficient Recovery (Hard)
+Agent must recover system within minimal steps (≤7 optimal, penalties beyond).
+
+---
+
+## Reward Design
+
+Rewards are shaped to reflect meaningful progress:
+
+- API interaction → small reward
+- Log inspection → diagnostic reward
+- Correct configuration update → high reward
+- Repeated or blind actions → penalty
+
+Rewards are bounded between [-1.0, 1.0] and provide continuous feedback across the trajectory.
+Reward is computed per step and accumulated across trajectory.
+
+---
+
 ## What this enforces
 
 - Penalizes blind retries  
@@ -108,6 +137,28 @@ Agent must coordinate across:
 
 ### Trajectory-Based Evaluation
 Performance is evaluated based on **decision sequence**, not just final success.
+
+---
+
+## Action Space
+
+Agents interact using structured actions:
+
+- `browser:fetch` → call API
+- `terminal:cat` → inspect logs
+- `terminal:update_config` → update system config
+
+---
+
+## Observation Space
+
+Each step returns:
+
+- `terminal_logs` → system logs
+- `browser_url` → current API endpoint
+- `file_system` → available files
+- `system_narrator` → environment feedback
+- `step_count` → progression tracker
 
 ---
 
@@ -149,6 +200,21 @@ The script will:
 - trigger hidden failure  
 - perform recovery sequence  
 - output trajectory and final score  
+
+---
+
+## Baseline Performance
+
+Example run using the provided inference script:
+
+```
+[START]
+[STEP] ...
+[STEP] ...
+[END] success=true steps=7 score=0.77
+```
+
+This demonstrates successful recovery with efficient reasoning.
 
 ---
 
@@ -224,6 +290,7 @@ can succeed efficiently.
 ## Summary
 
 Sentinel-OS is not just an environment.
+This benchmark models real-world production failures where systems degrade silently and require diagnostic reasoning to recover.
 
 It is a **behavioral diagnostic benchmark** for evaluating:
 
@@ -232,5 +299,7 @@ It is a **behavioral diagnostic benchmark** for evaluating:
 - recovery efficiency  
 
 under real-world-like uncertainty.
+
+This environment evaluates not just success, but *how intelligently an agent reaches success*.
 
 
