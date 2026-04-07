@@ -190,7 +190,7 @@ def run_inference():
     log_start(TASK_NAME, BENCHMARK, MODEL_NAME)
 
     try:
-        obs = env.reset()
+        obs = env.reset(task_id=TASK_NAME)
 
         for step in range(1, MAX_STEPS + 1):
             llm_action = get_llm_action(client, obs, history)
@@ -218,7 +218,7 @@ def run_inference():
                 break
 
         current_state = get_env_state(env)
-        final_score = grade_trajectory(current_state, env.trajectory)
+        final_score = grade_trajectory(current_state, env.trajectory, task_id=TASK_NAME)
         success = bool(current_state.get("fixed") is True and not current_state.get("broken"))
     finally:
         env.close()

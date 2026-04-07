@@ -3,6 +3,29 @@ from models import Observation, Action, Reward
 
 # Controlled seed management — reproducibility per episode, not global
 _FAILURE_MODES = ["version", "auth", "rate_limit"]
+_TASKS = {
+    "basic_recovery": {
+        "name": "Basic Recovery",
+        "difficulty": "easy",
+        "description": "Apply the correct recovery action for the hidden failure.",
+        "max_steps": 15,
+        "success_threshold": 0.95,
+    },
+    "log_diagnosis": {
+        "name": "Log Diagnosis",
+        "difficulty": "medium",
+        "description": "Inspect logs before applying the correct fix.",
+        "max_steps": 15,
+        "success_threshold": 0.95,
+    },
+    "efficient_recovery": {
+        "name": "Efficient Recovery",
+        "difficulty": "hard",
+        "description": "Recover with the minimum viable number of steps.",
+        "max_steps": 15,
+        "success_threshold": 0.30,
+    },
+}
 
 class SentinelEnv:
     """
@@ -26,7 +49,9 @@ class SentinelEnv:
     # PUBLIC API (DO NOT BREAK)
     # ------------------------------------------------------------------
 
-    def reset(self):
+    def reset(self, task_id: str = "efficient_recovery"):
+        if task_id not in _TASKS:
+            raise ValueError(f"Unknown task_id={task_id}")
         rng = random.Random(self._seed)  # reproducible per seed
 
         self._state = {
@@ -38,6 +63,7 @@ class SentinelEnv:
             "broken": False,
             "history": [],
             "pending_write": None,
+            "task_id": task_id,
             # v2 fields — new failure tracking
             "failure_type": None,
             "fixed": False,
@@ -315,3 +341,9 @@ class SentinelEnv:
     def close(self):
         """OpenEnv-style no-op closer for local and remote runners."""
         return None
+
+    def tasks(self):
+        return [
+            {"id": task_id, "task_id": task_id, **meta}
+            for task_id, meta in _TASKS.items()
+        ]
