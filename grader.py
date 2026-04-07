@@ -1,6 +1,6 @@
-from tasks.task_basic import grader as basic_grader
-from tasks.task_logs import grader as logs_grader
-from tasks.task_efficiency import grader as efficiency_grader
+from task_modules.task_basic import grader as basic_grader
+from task_modules.task_logs import grader as logs_grader
+from task_modules.task_efficiency import grader as efficiency_grader
 
 TASK_GRADERS = {
     "basic_recovery": basic_grader,

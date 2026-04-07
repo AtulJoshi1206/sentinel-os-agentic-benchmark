@@ -20,8 +20,8 @@ tasks:
     description: Apply the correct hidden-failure fix.
     max_steps: 15
     success_threshold: 0.95
-    file: tasks/task_basic.py
-    grader: tasks.task_basic:grader
+    file: task_modules/task_basic.py
+    grader: task_modules.task_basic:grader
 
   - id: log_diagnosis
     name: Log Diagnosis
@@ -29,8 +29,8 @@ tasks:
     description: Inspect logs before applying the correct fix.
     max_steps: 15
     success_threshold: 0.95
-    file: tasks/task_logs.py
-    grader: tasks.task_logs:grader
+    file: task_modules/task_logs.py
+    grader: task_modules.task_logs:grader
 
   - id: efficient_recovery
     name: Efficient Recovery
@@ -38,8 +38,8 @@ tasks:
     description: Recover with the minimum viable recovery path.
     max_steps: 15
     success_threshold: 0.30
-    file: tasks/task_efficiency.py
-    grader: tasks.task_efficiency:grader
+    file: task_modules/task_efficiency.py
+    grader: task_modules.task_efficiency:grader
 
 endpoints:
   reset: POST /reset

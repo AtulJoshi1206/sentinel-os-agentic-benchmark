@@ -16,9 +16,9 @@ import importlib
 from models import Action
 from env import SentinelEnv
 
-task_basic      = importlib.import_module("tasks.task_basic")
-task_logs       = importlib.import_module("tasks.task_logs")
-task_efficiency = importlib.import_module("tasks.task_efficiency")
+task_basic      = importlib.import_module("task_modules.task_basic")
+task_logs       = importlib.import_module("task_modules.task_logs")
+task_efficiency = importlib.import_module("task_modules.task_efficiency")
 
 GRADERS = {
     "task_basic":       task_basic.grader,
