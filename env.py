@@ -1,5 +1,5 @@
 import random
-from models import Observation, Action
+from models import Observation, Action, Reward
 
 # Controlled seed management — reproducibility per episode, not global
 _FAILURE_MODES = ["version", "auth", "rate_limit"]
@@ -29,7 +29,7 @@ class SentinelEnv:
     def reset(self):
         rng = random.Random(self._seed)  # reproducible per seed
 
-        self.state = {
+        self._state = {
             "api_version": "v1",
             "correct_api": "v1",
             "file_content": "",
@@ -59,9 +59,9 @@ class SentinelEnv:
         return self._get_obs("Environment reset. Sync API data.")
 
     def step(self, action: Action):
-        self.state["step"] += 1
-        step = self.state["step"]
-        self.state["history"].append(f"{action.tool}:{action.cmd}")
+        self._state["step"] += 1
+        step = self._state["step"]
+        self._state["history"].append(f"{action.tool}:{action.cmd}")
         self.trajectory.append(action)
 
         reward = 0.0
@@ -82,20 +82,20 @@ class SentinelEnv:
                 reward -= 0.2
 
         # ── SILENT FAILURE INJECTION at step 5 ───────────────────────
-        if step == 5 and self.state["failure_type"] is None:
-            self.state["failure_type"] = self._rng.choice(_FAILURE_MODES)
-            ft = self.state["failure_type"]
+        if step == 5 and self._state["failure_type"] is None:
+            self._state["failure_type"] = self._rng.choice(_FAILURE_MODES)
+            ft = self._state["failure_type"]
 
             if ft == "version":
-                self.state["correct_api"] = "v2"
-                self.state["broken"] = True
-                self.state["error"] = "v1 deprecated"
+                self._state["correct_api"] = "v2"
+                self._state["broken"] = True
+                self._state["error"] = "v1 deprecated"
             elif ft == "auth":
-                self.state["broken"] = True
-                self.state["error"] = "token expired"
+                self._state["broken"] = True
+                self._state["error"] = "token expired"
             elif ft == "rate_limit":
-                self.state["broken"] = True
-                self.state["error"] = "429 too many requests"
+                self._state["broken"] = True
+                self._state["error"] = "429 too many requests"
 
             self._inject_logs()
 
@@ -106,24 +106,28 @@ class SentinelEnv:
             self.trajectory.append(_ctx)
 
         # ── Delayed async write ───────────────────────────────────────
-        if self.state["pending_write"]:
-            self.state["file_content"] = self.state["pending_write"]
-            self.state["pending_write"] = None
+        if self._state["pending_write"]:
+            self._state["file_content"] = self._state["pending_write"]
+            self._state["pending_write"] = None
 
         # ── ACTION DISPATCH ───────────────────────────────────────────
         narrator, reward, error = self._dispatch(action, reward)
-        self.state["last_action_error"] = error
+        self._state["last_action_error"] = error
 
         done = self._compute_done()
-        reward = max(-1.0, min(1.0, reward))
+        reward = Reward(value=max(-1.0, min(1.0, reward))).value
         return self._get_obs(narrator), reward, done, {"error": error}
+
+    def state(self):
+        """Return the current environment state snapshot."""
+        return dict(self._state)
 
     # ------------------------------------------------------------------
     # INTERNAL
     # ------------------------------------------------------------------
 
     def _dispatch(self, action: Action, reward: float):
-        ft = self.state["failure_type"]
+        ft = self._state["failure_type"]
         narrator = ""
         error = None
 
@@ -133,11 +137,11 @@ class SentinelEnv:
 
         # ── browser:fetch ─────────────────────────────────────────────
         if action.tool == "browser" and action.cmd == "fetch":
-            if self.state["api_version"] != self.state["correct_api"]:
+            if self._state["api_version"] != self._state["correct_api"]:
                 narrator = "Fetch failed. Possible API mismatch. Check system logs."
                 reward -= 0.2
                 error = "api_mismatch"
-            elif self.state["broken"] and self._rng.random() < 0.2:
+            elif self._state["broken"] and self._rng.random() < 0.2:
                 narrator = "Intermittent failure persists. Retry or verify logs."
                 reward -= 0.1
                 error = "intermittent_failure"
@@ -147,9 +151,9 @@ class SentinelEnv:
 
         # ── terminal:cat ─────────────────────────────────────────────
         elif action.tool == "terminal" and action.cmd == "cat":
-            narrator = f"Logs Read:\n{self.state['logs']}"
+            narrator = f"Logs Read:\n{self._state['logs']}"
             # diagnostic reward only if failure is active
-            if self.state["broken"]:
+            if self._state["broken"]:
                 reward += 0.4
 
         # ── terminal:update_config  OR  config:* ─────────────────────
@@ -159,9 +163,9 @@ class SentinelEnv:
             if ft is None:
                 # No failure injected yet — basic success path
                 if val == "v2":
-                    self.state["api_version"] = "v2"
-                    self.state["broken"] = False
-                    self.state["fixed"] = True
+                    self._state["api_version"] = "v2"
+                    self._state["broken"] = False
+                    self._state["fixed"] = True
                     narrator = "Config updated to v2. System handshake successful."
                     reward = 1.0
                 else:
@@ -172,10 +176,10 @@ class SentinelEnv:
             elif ft == "version":
                 # update_config FIXES version failure
                 if val == "v2":
-                    self.state["api_version"] = "v2"
-                    self.state["correct_api"] = "v2"
-                    self.state["broken"] = False
-                    self.state["fixed"] = True
+                    self._state["api_version"] = "v2"
+                    self._state["correct_api"] = "v2"
+                    self._state["broken"] = False
+                    self._state["fixed"] = True
                     narrator = "Config updated to v2. System handshake successful. Failure resolved."
                     reward += 1.0
                 else:
@@ -185,7 +189,7 @@ class SentinelEnv:
 
             elif ft == "auth":
                 # WRONG FIX TRAP — update_config does NOT fix auth
-                self.state["fixed"] = False
+                self._state["fixed"] = False
                 narrator = (
                     "[WARN] Config written. Auth error persists — token still expired. "
                     "update_config does not rotate credentials."
@@ -195,13 +199,13 @@ class SentinelEnv:
 
             elif ft == "rate_limit":
                 # Partial fix — only resolves if wait was done first
-                if self.state["rate_limit_resolved"]:
-                    self.state["broken"] = False
-                    self.state["fixed"] = True
+                if self._state["rate_limit_resolved"]:
+                    self._state["broken"] = False
+                    self._state["fixed"] = True
                     narrator = "Rate limit cleared. Config updated. API resumed."
                     reward += 1.0
                 else:
-                    self.state["fixed"] = "partial"
+                    self._state["fixed"] = "partial"
                     narrator = (
                         "[WARN] Config updated but rate limit backoff still active. "
                         "Call 'wait' first to drain the request queue."
@@ -212,8 +216,8 @@ class SentinelEnv:
         # ── terminal:refresh_token ────────────────────────────────────
         elif action.tool == "terminal" and action.cmd == "refresh_token":
             if ft == "auth":
-                self.state["broken"] = False
-                self.state["fixed"] = True
+                self._state["broken"] = False
+                self._state["fixed"] = True
                 narrator = "Token refreshed. Auth re-established. API resumed."
                 reward += 1.0
             else:
@@ -224,7 +228,7 @@ class SentinelEnv:
         # ── system:wait ───────────────────────────────────────────────
         elif action.tool == "system" and action.cmd == "wait":
             if ft == "rate_limit":
-                self.state["rate_limit_resolved"] = True
+                self._state["rate_limit_resolved"] = True
                 narrator = "Backoff period elapsed. Request queue drained. Proceed with config update."
                 reward += 0.3
             else:
@@ -233,7 +237,7 @@ class SentinelEnv:
 
         # ── filesystem:write ──────────────────────────────────────────
         elif action.tool == "filesystem" and action.cmd == "write":
-            self.state["pending_write"] = "data_saved_v1"
+            self._state["pending_write"] = "data_saved_v1"
             narrator = "Write initiated. Changes will reflect in the next step."
             reward += 0.2
 
@@ -247,7 +251,7 @@ class SentinelEnv:
 
     def _inject_logs(self):
         """Build noisy, failure-specific logs with ambient noise."""
-        ft = self.state["failure_type"]
+        ft = self._state["failure_type"]
         logs = []
 
         # ambient noise — 2–4 random lines
@@ -279,13 +283,13 @@ class SentinelEnv:
         }
         logs.append(red_herrings.get(ft, "[DEBUG] unclassified event"))
 
-        self.state["logs"] = "\n".join(logs)
+        self._state["logs"] = "\n".join(logs)
 
     def _compute_done(self):
-        step = self.state["step"]
-        fixed = self.state["fixed"]
-        broken = self.state["broken"]
-        api_match = self.state["api_version"] == self.state["correct_api"]
+        step = self._state["step"]
+        fixed = self._state["fixed"]
+        broken = self._state["broken"]
+        api_match = self._state["api_version"] == self._state["correct_api"]
 
         # Solved
         if step > 5 and fixed is True and not broken and api_match:
@@ -298,14 +302,14 @@ class SentinelEnv:
     def _get_obs(self, msg: str) -> Observation:
         return Observation(
             terminal_logs=(
-                self.state["logs"]
-                if self.state["step"] > 3
+                self._state["logs"]
+                if self._state["step"] > 3
                 else "No errors recorded."
             ),
-            browser_url=f"http://internal-cluster/api/{self.state['api_version']}",
+            browser_url=f"http://internal-cluster/api/{self._state['api_version']}",
             file_system=["config.env", "data_vault.json", "logs/error.log"],
             system_narrator=msg,
-            step_count=self.state["step"],
+            step_count=self._state["step"],
         )
 
     def close(self):

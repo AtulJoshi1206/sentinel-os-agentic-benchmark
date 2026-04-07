@@ -178,7 +178,7 @@ def run_seeded_correct(seed):
     env.reset()
     for _ in range(5):
         env.step(Action(tool="browser", cmd="fetch"))
-    ft = env.state["failure_type"]
+    ft = env.state()["failure_type"]
     env.step(Action(tool="terminal", cmd="cat"))
     if ft == "version":
         env.step(Action(tool="terminal", cmd="update_config", args="v2"))
@@ -187,7 +187,7 @@ def run_seeded_correct(seed):
     else:
         env.step(Action(tool="system", cmd="wait"))
         env.step(Action(tool="terminal", cmd="update_config", args="v2"))
-    return ft, env.trajectory, env.state
+    return ft, env.trajectory, env.state()
 
 for seed in range(6):
     ft, traj, state = run_seeded_correct(seed)
@@ -217,7 +217,7 @@ def find_seed_for(target_ft, max_seeds=30):
         env.reset()
         for _ in range(5):
             env.step(Action(tool="browser", cmd="fetch"))
-        if env.state["failure_type"] == target_ft:
+        if env.state()["failure_type"] == target_ft:
             return s, env
     return None, None
 
@@ -234,8 +234,8 @@ if env:
         "wrong-fix trap must score 0 on basic"
     )
     check(
-        f"env.state['fixed'] = {env.state['fixed']}  (must be False)",
-        env.state["fixed"] is not True,
+        f"env.state['fixed'] = {env.state()['fixed']}  (must be False)",
+        env.state()["fixed"] is not True,
         "wrong fix must not resolve auth failure"
     )
 else:

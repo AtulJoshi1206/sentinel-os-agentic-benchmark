@@ -28,4 +28,4 @@ def step(action: dict):
 
 @app.get("/state")
 def state():
-    return env_instance.state
+    return env_instance.state()

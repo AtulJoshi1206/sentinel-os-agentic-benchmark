@@ -6,6 +6,8 @@ colorTo: purple
 sdk: docker
 app_file: app.py
 pinned: false
+tags:
+  - openenv
 ---
 
 # Sentinel-OS: Agentic Recovery Benchmark
@@ -312,4 +314,3 @@ It is a **behavioral diagnostic benchmark** for evaluating:
 under real-world-like uncertainty.
 
 This environment evaluates not just success, but *how intelligently an agent reaches success*.
-

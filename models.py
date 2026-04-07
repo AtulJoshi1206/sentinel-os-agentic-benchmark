@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional, Dict
+from typing import List, Optional
 
 class Observation(BaseModel):
     terminal_logs: str = Field(..., description="System output and error logs (may contain noise)")
@@ -7,6 +7,15 @@ class Observation(BaseModel):
     file_system: List[str] = Field(..., description="List of files in the current workspace")
     system_narrator: str = Field(..., description="Live feedback on system state changes")
     step_count: int = Field(..., description="Current step in the trajectory")
+
+
+class Reward(BaseModel):
+    value: float = Field(
+        ...,
+        ge=-1.0,
+        le=1.0,
+        description="Per-step reward signal, normalized to the environment reward range.",
+    )
 
 class Action(BaseModel):
     tool: str = Field(

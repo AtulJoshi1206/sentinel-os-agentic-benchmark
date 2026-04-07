@@ -144,6 +144,11 @@ def choose_action(obs, history, llm_action):
     return llm_action if llm_action == policy_action else policy_action
 
 
+def get_env_state(env):
+    state_obj = getattr(env, "state")
+    return state_obj() if callable(state_obj) else state_obj
+
+
 # -------------------------------
 # LOGGING (MANDATORY FORMAT)
 # -------------------------------
@@ -212,8 +217,9 @@ def run_inference():
             if done:
                 break
 
-        final_score = grade_trajectory(env.state, env.trajectory)
-        success = bool(env.state.get("fixed") is True and not env.state.get("broken"))
+        current_state = get_env_state(env)
+        final_score = grade_trajectory(current_state, env.trajectory)
+        success = bool(current_state.get("fixed") is True and not current_state.get("broken"))
     finally:
         env.close()
         log_end(success, steps_taken, final_score, rewards)
