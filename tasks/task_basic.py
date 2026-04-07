@@ -20,6 +20,11 @@ into the trajectory at the moment of failure. Graders extract it to score
 in context without changing their signature.
 """
 
+TASK_ID = "basic_recovery"
+TASK_NAME = "Basic Recovery"
+DIFFICULTY = "easy"
+SUCCESS_THRESHOLD = 0.95
+
 
 def _get_failure_type(trajectory):
     """Extract the failure type from the injected _ctx sentinel, or None."""

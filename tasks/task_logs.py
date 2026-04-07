@@ -22,6 +22,11 @@ Scoring matrix (context-aware):
 The `_ctx` sentinel in trajectory carries the actual failure_type.
 """
 
+TASK_ID = "log_diagnosis"
+TASK_NAME = "Log Diagnosis"
+DIFFICULTY = "medium"
+SUCCESS_THRESHOLD = 0.95
+
 
 def _get_failure_type(trajectory) -> Optional[str]:
     for a in trajectory:

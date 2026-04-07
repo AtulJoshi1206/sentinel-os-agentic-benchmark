@@ -23,6 +23,11 @@ All scores clamped to [0.0, 1.0].
 """
 from typing import Optional
 
+TASK_ID = "efficient_recovery"
+TASK_NAME = "Efficient Recovery"
+DIFFICULTY = "hard"
+SUCCESS_THRESHOLD = 0.30
+
 
 def _get_failure_type(trajectory) -> Optional[str]:
     for a in trajectory:

@@ -24,6 +24,7 @@ class Task:
     def to_dict(self) -> Dict[str, object]:
         data = asdict(self)
         data["id"] = self.task_id
+        data["episode_length"] = self.max_steps
         data["grader"] = True
         data["has_grader"] = True
         data["grader_id"] = self.task_id
@@ -89,6 +90,18 @@ def grade_efficient_recovery(trajectory) -> float:
     return round(efficient_recovery_grader(trajectory), 3)
 
 
+def grade_easy(trajectory) -> float:
+    return grade_basic_recovery(trajectory)
+
+
+def grade_medium(trajectory) -> float:
+    return grade_log_diagnosis(trajectory)
+
+
+def grade_hard(trajectory) -> float:
+    return grade_efficient_recovery(trajectory)
+
+
 GRADERS = {
     TASK_BASIC_RECOVERY.task_id: grade_basic_recovery,
     TASK_LOG_DIAGNOSIS.task_id: grade_log_diagnosis,
@@ -96,4 +109,9 @@ GRADERS = {
 }
 
 TASK_GRADERS = GRADERS
-
+ALL_GRADERS = {
+    "easy": grade_easy,
+    "medium": grade_medium,
+    "hard": grade_hard,
+    **TASK_GRADERS,
+}
