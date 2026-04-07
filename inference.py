@@ -4,8 +4,9 @@ from openai import OpenAI
 from env import SentinelEnv
 from grader import grade_trajectory
 from models import Action
+from tasks import ALL_TASKS
 
-TASK_NAME = os.getenv("TASK_NAME", "efficient_recovery")
+TASK_NAME = os.getenv("TASK_NAME") or os.getenv("OPENENV_TASK") or os.getenv("MY_ENV_V4_TASK")
 BENCHMARK = os.getenv("BENCHMARK", "sentinel_os")
 API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
 MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
@@ -176,6 +177,14 @@ def log_end(success, steps, score, rewards):
 # MAIN EXECUTION
 # -------------------------------
 def run_inference():
+    task_names = [TASK_NAME] if TASK_NAME else [task.task_id for task in ALL_TASKS]
+    client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY) if API_KEY else None
+
+    for task_name in task_names:
+        run_single_task(task_name, client)
+
+
+def run_single_task(task_name, client):
     env = SentinelEnv()
     obs = None
     rewards = []
@@ -185,12 +194,10 @@ def run_inference():
     success = False
     final_score = 0.0
 
-    client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY) if API_KEY else None
-
-    log_start(TASK_NAME, BENCHMARK, MODEL_NAME)
+    log_start(task_name, BENCHMARK, MODEL_NAME)
 
     try:
-        obs = env.reset(task_id=TASK_NAME)
+        obs = env.reset(task_id=task_name)
 
         for step in range(1, MAX_STEPS + 1):
             llm_action = get_llm_action(client, obs, history)
@@ -218,7 +225,7 @@ def run_inference():
                 break
 
         current_state = get_env_state(env)
-        final_score = grade_trajectory(current_state, env.trajectory, task_id=TASK_NAME)
+        final_score = grade_trajectory(current_state, env.trajectory, task_id=task_name)
         success = bool(current_state.get("fixed") is True and not current_state.get("broken"))
     finally:
         env.close()

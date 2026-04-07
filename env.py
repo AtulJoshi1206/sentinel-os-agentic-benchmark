@@ -4,27 +4,36 @@ from models import Observation, Action, Reward
 # Controlled seed management — reproducibility per episode, not global
 _FAILURE_MODES = ["version", "auth", "rate_limit"]
 _TASKS = {
-    "basic_recovery": {
+    "task_basic": {
         "name": "Basic Recovery",
         "difficulty": "easy",
         "description": "Apply the correct recovery action for the hidden failure.",
         "max_steps": 15,
         "success_threshold": 0.95,
     },
-    "log_diagnosis": {
+    "task_logs": {
         "name": "Log Diagnosis",
         "difficulty": "medium",
         "description": "Inspect logs before applying the correct fix.",
         "max_steps": 15,
         "success_threshold": 0.95,
     },
-    "efficient_recovery": {
+    "task_efficiency": {
         "name": "Efficient Recovery",
         "difficulty": "hard",
         "description": "Recover with the minimum viable number of steps.",
         "max_steps": 15,
         "success_threshold": 0.30,
     },
+}
+
+_TASK_ALIASES = {
+    "basic_recovery": "task_basic",
+    "log_diagnosis": "task_logs",
+    "efficient_recovery": "task_efficiency",
+    "easy": "task_basic",
+    "medium": "task_logs",
+    "hard": "task_efficiency",
 }
 
 class SentinelEnv:
@@ -49,7 +58,8 @@ class SentinelEnv:
     # PUBLIC API (DO NOT BREAK)
     # ------------------------------------------------------------------
 
-    def reset(self, task_id: str = "efficient_recovery"):
+    def reset(self, task_id: str = "task_efficiency"):
+        task_id = _TASK_ALIASES.get(task_id, task_id)
         if task_id not in _TASKS:
             raise ValueError(f"Unknown task_id={task_id}")
         rng = random.Random(self._seed)  # reproducible per seed

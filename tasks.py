@@ -36,7 +36,7 @@ class Task:
 
 
 TASK_EASY = Task(
-    task_id="basic_recovery",
+    task_id="task_basic",
     name="Basic Recovery",
     description="Apply the correct hidden-failure fix.",
     difficulty="easy",
@@ -47,7 +47,7 @@ TASK_EASY = Task(
 )
 
 TASK_MEDIUM = Task(
-    task_id="log_diagnosis",
+    task_id="task_logs",
     name="Log Diagnosis",
     description="Inspect logs before applying the correct fix.",
     difficulty="medium",
@@ -58,7 +58,7 @@ TASK_MEDIUM = Task(
 )
 
 TASK_HARD = Task(
-    task_id="efficient_recovery",
+    task_id="task_efficiency",
     name="Efficient Recovery",
     description="Recover with the minimum viable recovery path.",
     difficulty="hard",
@@ -118,4 +118,3 @@ ALL_GRADERS = {
     "hard": grade_hard,
     **TASK_GRADERS,
 }
-

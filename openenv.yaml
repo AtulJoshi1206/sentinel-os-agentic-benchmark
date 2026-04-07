@@ -14,7 +14,7 @@ tags:
   - incident-response
 
 tasks:
-  - id: basic_recovery
+  - id: task_basic
     name: Basic Recovery
     difficulty: easy
     description: Apply the correct hidden-failure fix.
@@ -23,7 +23,7 @@ tasks:
     file: task_modules/task_basic.py
     grader: task_modules.task_basic:grader
 
-  - id: log_diagnosis
+  - id: task_logs
     name: Log Diagnosis
     difficulty: medium
     description: Inspect logs before applying the correct fix.
@@ -32,7 +32,7 @@ tasks:
     file: task_modules/task_logs.py
     grader: task_modules.task_logs:grader
 
-  - id: efficient_recovery
+  - id: task_efficiency
     name: Efficient Recovery
     difficulty: hard
     description: Recover with the minimum viable recovery path.

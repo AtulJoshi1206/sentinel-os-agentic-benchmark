@@ -12,7 +12,7 @@ env_instance = SentinelEnv()
 
 
 class ResetRequest(BaseModel):
-    task_id: str = "efficient_recovery"
+    task_id: str = "task_efficiency"
 
 @app.get("/")
 def root():
