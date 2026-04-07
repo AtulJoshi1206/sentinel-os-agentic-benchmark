@@ -46,15 +46,13 @@ def state():
 
 @app.get("/tasks")
 def tasks():
-    return {
-        "tasks": [
-            {
-                **task,
-                "grader": True,
-            }
-            for task in env_instance.tasks()
-        ]
-    }
+    return [
+        {
+            **task,
+            "grader": True,
+        }
+        for task in env_instance.tasks()
+    ]
 
 
 @app.get("/grader")
