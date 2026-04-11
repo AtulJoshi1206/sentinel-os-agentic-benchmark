@@ -10,10 +10,13 @@ TASK_NAME = os.getenv("TASK_NAME") or os.getenv("OPENENV_TASK") or os.getenv("MY
 BENCHMARK = os.getenv("BENCHMARK", "sentinel_os")
 API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
 MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
-API_KEY = os.getenv("HF_TOKEN") or os.getenv("OPENAI_API_KEY") or os.getenv("API_KEY")
+HF_TOKEN = os.getenv("HF_TOKEN")
 MAX_STEPS = int(os.getenv("MAX_STEPS", "8"))
 TEMPERATURE = float(os.getenv("TEMPERATURE", "0.1"))
 MAX_TOKENS = int(os.getenv("MAX_TOKENS", "120"))
+
+if HF_TOKEN is None:
+    raise ValueError("HF_TOKEN environment variable is required")
 
 ALLOWED_ACTIONS = {
     ("browser", "fetch"),
@@ -165,10 +168,10 @@ def log_step(step, action, reward, done, error=None):
     )
 
 
-def log_end(success, steps, score, rewards):
+def log_end(success, steps, rewards):
     rewards_str = ",".join(f"{r:.2f}" for r in rewards)
     print(
-        f"[END] success={str(success).lower()} steps={steps} score={score:.3f} rewards={rewards_str}",
+        f"[END] success={str(success).lower()} steps={steps} rewards={rewards_str}",
         flush=True,
     )
 
@@ -178,7 +181,7 @@ def log_end(success, steps, score, rewards):
 # -------------------------------
 def run_inference():
     task_names = [TASK_NAME] if TASK_NAME else [task.task_id for task in ALL_TASKS]
-    client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY) if API_KEY else None
+    client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
 
     for task_name in task_names:
         run_single_task(task_name, client)
@@ -229,7 +232,7 @@ def run_single_task(task_name, client):
         success = bool(current_state.get("fixed") is True and not current_state.get("broken"))
     finally:
         env.close()
-        log_end(success, steps_taken, final_score, rewards)
+        log_end(success, steps_taken, rewards)
 
 
 # -------------------------------

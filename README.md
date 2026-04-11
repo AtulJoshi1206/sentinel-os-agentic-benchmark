@@ -25,13 +25,15 @@ The objective is not just task completion — but **intelligent, efficient recov
 
 ## Core Scenario
 
-The environment simulates a real-world system with a silent failure:
+The environment simulates a production API cluster with a hidden failure that appears only after several normal interactions.
 
-- Initial state: API operates normally (v1)  
-- At step 5: hidden failure is triggered  
-- API endpoint internally changes (v1 → v2)  
-- System responses degrade without explicit error  
-- Root cause is only discoverable through logs  
+- Initial state: the cluster looks healthy
+- At step 5: a failure is injected silently
+- Hidden failure mode is one of:
+  - version migration (`v1` deprecated, must update config to `v2`)
+  - auth expiry (must refresh token)
+  - rate-limit backoff (must wait, then update config)
+- Root cause is not surfaced directly; the agent must infer it from logs and degraded responses
 
 ---
 
@@ -42,9 +44,9 @@ A correct agent must:
 1. Execute normal operations  
 2. Detect abnormal system response  
 3. Inspect logs (diagnostic reasoning)  
-4. Infer API migration (v1 → v2)  
-5. Update configuration  
-6. Resume successful execution  
+4. Infer which failure mode is active  
+5. Apply the matching recovery action  
+6. Resume successful execution with minimal wasted steps  
 
 ---
 
@@ -91,13 +93,19 @@ This gives the benchmark a clear three-axis evaluation story:
 The benchmark includes three progressively difficult tasks:
 
 ### 1. Basic Recovery (Easy)
-Agent must successfully execute `terminal:update_config` after failure detection.
+Task ID: `task_basic`
+
+Agent must apply the correct recovery action for the hidden failure mode.
 
 ### 2. Log-Based Diagnosis (Medium)
-Agent must perform `terminal:cat` before applying fix. Missing this reduces score.
+Task ID: `task_logs`
+
+Agent must inspect logs before applying the fix. Missing this reduces score even if the final action is correct.
 
 ### 3. Efficient Recovery (Hard)
-Agent must recover using a minimal recovery path, with continuous efficiency decay instead of coarse buckets.
+Task ID: `task_efficiency`
+
+Agent must recover using the minimum viable path. Efficiency decays continuously instead of using coarse buckets.
 
 ---
 
@@ -149,7 +157,9 @@ Agents interact using structured actions:
 
 - `browser:fetch` → call API
 - `terminal:cat` → inspect logs
-- `terminal:update_config` → update system config
+- `terminal:update_config` → update system config to `v2`
+- `terminal:refresh_token` → recover expired credentials
+- `system:wait` → satisfy rate-limit backoff before config update
 
 ---
 
@@ -199,10 +209,10 @@ python3 inference.py
 
 The script will:
 
-- simulate agent interaction  
-- trigger hidden failure  
-- perform recovery sequence  
-- output trajectory and final score  
+- simulate agent interaction
+- trigger a hidden failure
+- perform recovery sequence
+- emit `[START]`, `[STEP]`, and `[END]` records for each task run
 
 ---
 
@@ -211,7 +221,7 @@ The script will:
 Example run using the provided inference script:
 
 ```
-[START] task=efficient_recovery env=sentinel_os model=Qwen/Qwen2.5-72B-Instruct
+[START] task=task_basic env=sentinel_os model=Qwen/Qwen2.5-72B-Instruct
 [STEP] step=1 action=browser:fetch reward=0.60 done=false error=null
 [STEP] step=2 action=browser:fetch reward=0.40 done=false error=null
 [STEP] step=3 action=browser:fetch reward=0.40 done=false error=null
@@ -219,7 +229,7 @@ Example run using the provided inference script:
 [STEP] step=5 action=browser:fetch reward=-0.20 done=false error=api_mismatch
 [STEP] step=6 action=terminal:cat reward=0.70 done=false error=null
 [STEP] step=7 action=terminal:update_config(v2) reward=1.00 done=true error=null
-[END] success=true steps=7 score=0.779 rewards=0.60,0.40,0.40,0.40,-0.20,0.70,1.00
+[END] success=true steps=7 rewards=0.60,0.40,0.40,0.40,-0.20,0.70,1.00
 ```
 
 ---
@@ -253,7 +263,7 @@ Deploy using Docker.
 
 API_BASE_URL
 MODEL_NAME
-HF_TOKEN (optional)
+HF_TOKEN (required)
 
 ```
 
@@ -261,8 +271,9 @@ HF_TOKEN (optional)
 
 - `inference.py` must live at the repo root
 - stdout must emit `[START]`, one `[STEP]` per environment step, and `[END]`
-- final score must be clamped to `[0, 1]`
-- the script uses the OpenAI client for model calls and falls back to a safe policy if the model output is invalid
+- the script uses the OpenAI client for model calls
+- `HF_TOKEN` must be present in the environment
+- if no task is specified, the script runs all three benchmark tasks sequentially
 
 ---
 
@@ -271,6 +282,11 @@ HF_TOKEN (optional)
 ```
 
 sentinel_os/
+├── tasks.py
+├── task_modules/
+│   ├── task_basic.py
+│   ├── task_logs.py
+│   └── task_efficiency.py
 ├── env.py
 ├── models.py
 ├── grader.py
